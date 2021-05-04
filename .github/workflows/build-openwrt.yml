@@ -18,6 +18,8 @@ on:
         description: 'SSH connection to Actions'
         required: false
         default: 'false'
+  schedule:
+    - cron: 0 8 28 */3 5
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
@@ -28,7 +30,7 @@ env:
   DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
-  UPLOAD_COWTRANSFER: false
+  UPLOAD_COWTRANSFER: true
   UPLOAD_WETRANSFER: false
   UPLOAD_RELEASE: false
   TZ: Asia/Shanghai
@@ -67,9 +69,16 @@ jobs:
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
+        sed -i '$a src-git helloworld https://github.com/fw876/helloworld' feeds.conf.default 
+        sed -i '$a src-git kenzo https://github.com/kenzok8/openwrt-packages' feeds.conf.default
+        sed -i '$a src-git small https://github.com/kenzok8/small' feeds.conf.default 
 
     - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        rm -rf feeds/kenzo/luci-app-ssr-plus/
+        rm -rf feeds/kenzo/luci-app-clash/
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
@@ -81,6 +90,13 @@ jobs:
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
+        cd package
+        git clone https://github.com/jerrykuku/lua-maxminddb.git jerrykuku/lua-maxminddb
+        git clone https://github.com/jerrykuku/luci-app-vssr.git jerrykuku/luci-app-vssr
+        cd lean
+        rm -rf luci-theme-argon
+        git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git
+        
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
